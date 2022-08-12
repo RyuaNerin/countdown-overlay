@@ -1,0 +1,168 @@
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Countdown Overlay by RyuaNerin</title>
+    <style>
+        * {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+            overflow: hidden;
+            
+            background-color: transparent;
+        }
+
+        #container {
+            width: 100%;
+            height: 100%;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #content {
+            text-align: center;
+
+            font-size: 50vmin;
+            font-weight: bold;
+
+            color: white;
+            -webkit-text-stroke-width: medium;
+            -webkit-text-stroke-color: black;
+        }
+
+        .resizeHandle {
+            /* リサイズ用のハンドル
+             * リサイズができる場所はウィンドウ右下の16x16ピクセルの場所
+             * この部分が完全に透明だとマウス入力が透過してしまってサイズを変更できなくなる */
+
+
+            background-image: url(handle.png);
+            background-position: bottom right;
+            background-repeat: no-repeat;
+            box-sizing: border-box;
+        }
+
+        .remain5 {
+            color: #EF9A9A !important;
+        }
+    </style>
+
+    <script type="text/javascript" src="https://ngld.github.io/OverlayPlugin/assets/shared/common.min.js"></script>
+    <script>
+        const lockedCountdown = 10;
+        const intervalMs = 25;
+        const fractionDigits = 1;
+
+        /** @type {HTMLDivElement} */
+        var content;
+
+        var startAt = new Date();
+        var startIntervalID = 0;
+        var startRed = false;
+
+        var locked = false;
+        var lockedIntervalID = 0;
+        var lockedAt = new Date();
+
+        function setCountdownColor(remain) {
+            if (remain <= 5 && !startRed) {
+                content.classList.add("remain5");
+                startRed = true;
+            } else if (remain > 5 && startRed) {
+                content.classList.remove("remain5");
+                startRed = false;
+
+            }
+        }
+
+        function ticker() {  
+            const now = new Date();
+            if (now >= startAt) {
+                reset();
+            } else if (locked) {
+                const sec = (startAt - now) / 1000;
+                setCountdownColor(sec);
+                content.innerHTML = sec.toFixed(fractionDigits);
+            }
+        }
+        function tickerLocked() {
+            const now = new Date();
+            if (!locked) {
+                if (now >= lockedAt) {
+                    lockedAt = new Date(Date.now() + lockedCountdown * 1000);
+                }
+                
+                const sec = (lockedAt - now) / 1000;
+                setCountdownColor(sec);
+                content.innerHTML = sec.toFixed(fractionDigits);
+            }
+        }
+
+        function displayResize(e) {
+            locked = e.detail.isLocked
+            if (!locked) {
+                document.documentElement.classList.add("resizeHandle");
+                if (lockedIntervalID == 0) {
+                    lockedAt = new Date(Date.now() + lockedCountdown * 1000);
+                    lockedIntervalID = setInterval(tickerLocked, intervalMs);
+                }
+            } else {
+                document.documentElement.classList.remove("resizeHandle");
+                if (lockedIntervalID != 0) {
+                    clearInterval(lockedIntervalID);
+                    lockedIntervalID = 0;
+                }
+                if (startIntervalID == 0) {
+                    content.innerHTML = "";
+                }
+            }
+        }
+
+        function reset() {
+            clearInterval(startIntervalID);
+            startIntervalID = 0;
+            content.innerHTML = "";
+        }
+
+        function logLine(e) {
+            if (e.line[0] == '00' && e.line[2] == '00B9') {
+                /** @type {string} */
+                const atStr = e.line[1];
+                /** @type {string} */
+                const txt = e.line[4];
+
+                if (txt.indexOf("초읽기를 취소했습니다.") != 0 && startIntervalID != 0) {
+                    reset();
+                    return
+                }
+
+                const m = txt.match("^전투 시작 (\\d+)초 전");
+                if (m) {
+                    startAt = new Date(Date.parse(atStr) + parseInt(m[1]) * 1000);
+
+                    if (startIntervalID == 0) {
+                        startIntervalID = setInterval(ticker, intervalMs);
+                    }
+                }
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            content = document.getElementById("content");
+
+            addOverlayListener("LogLine", logLine);
+            addOverlayListener("ChangeZone", reset);
+            document.addEventListener("onOverlayStateUpdate", displayResize);
+            startOverlayEvents();
+        });
+
+    </script>
+</head>
+<body>
+    <div id="container">
+      <div id="content">
+        10.5
+      </div>
+    </div>    
+</body>
