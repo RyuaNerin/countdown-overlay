@@ -1,5 +1,6 @@
 # countdown-overlay
 
+1. ACT 실행
 1. `Plugins`
 1. `OverlayPlugin.dll`
 1. `추가`
@@ -11,6 +12,7 @@
     |유형|MiniParse|
 
 1. `확인`
+1. 왼쪽에서 생성한 오버레이 클릭
 1. URL 에 아래 주소 입력
 
     `https://ryuanerin.github.io/countdown-overlay`
